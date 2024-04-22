@@ -5,36 +5,40 @@ on:
   push:
     branches:
       - main
+    paths:
+      - 'prefix-lists.txt'
+
   schedule:
     - cron: '0 0 * * *'
 
 jobs:
-  name: Build Prefix Lists
-  runs-on: ubuntu-latest
+  build:
+    name: Build Prefix Lists
+    runs-on: ubuntu-latest
 
-  steps:
-    - uses: awalsh128/cache-apt-pkgs-action@latest
-      with:
-        packages: bgpq4
-        version: 1.0
+    steps:
+      - uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: bgpq4
+          version: 1.0
 
-    - uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a # v2.1.0
-      id: generate-token
-      with:
-        app_id: ${{ secrets.BOT_APP_ID }}
-        private_key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
+      - uses: tibdex/github-app-token@3beb63f4bd073e61482598c45c71c1019b59b73a # v2.1.0
+        id: generate-token
+        with:
+          app_id: ${{ secrets.BOT_APP_ID }}
+          private_key: ${{ secrets.BOT_APP_PRIVATE_KEY }}
 
-    - uses: actions/checkout@v4
-      with:
-        token: ${{ steps.generate-token.outputs.token }}
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ steps.generate-token.outputs.token }}
 
-    - name: Build prefix lists
-      run: |
-        while read -r prefix_list; do
-          bgpq4 -4 -h 103.2.117.6 -l LIST -A $prefix_list | sed -e 's/.*LIST\s//' -e '1d' > $prefix_list-V4
-          bgpq4 -6 -h 103.2.117.6 -l LIST -A $prefix_list | sed -e 's/.*LIST\s//' -e '1d' > $prefix_list-V6
-        done < prefix-lists.txt
+      - name: Build prefix lists
+        run: |
+          while read -r prefix_list; do
+            bgpq4 -4 -h 103.2.117.6 -l LIST -A $prefix_list | sed -e 's/.*LIST\s//' -e '1d' > $prefix_list-V4
+            bgpq4 -6 -h 103.2.117.6 -l LIST -A $prefix_list | sed -e 's/.*LIST\s//' -e '1d' > $prefix_list-V6
+          done < prefix-lists.txt
 
-    - uses: EndBug/add-and-commit@v9
-      with:
-        message: Automated Prefix List Update - ${{ github.run_number }} -
+      - uses: EndBug/add-and-commit@v9
+        with:
+          message: Automated Prefix List Update - ${{ github.run_number }} -
